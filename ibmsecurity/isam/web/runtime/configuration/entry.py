@@ -124,18 +124,17 @@ def _collapse_entries(entries):
     """
     if entries is None or len(entries) < 1:
         return []
-    else:
-        cur_key = entries[0][0]
-        cur_value = []
-        new_entry = []
+    cur_key = entries[0][0]
+    cur_value = []
+    new_entry = []
 
     for entry in entries:
         if entry[0] == cur_key:
             cur_value.append(entry[1])
         else:
+            new_entry.append([cur_key, cur_value])
             cur_key = entry[0]
             cur_value = [entry[1]]
-            new_entry.append([cur_key, cur_value])
 
     new_entry.append([cur_key, cur_value])
 
