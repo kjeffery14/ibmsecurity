@@ -138,7 +138,9 @@ def set(isamAppliance, primary_master='127.0.0.1', secondary_master=None, master
         cluster_json["dsc_trace_level"] = dsc_trace_level
 
     check_obj =  _check(isamAppliance, cluster_json, ignore_password_for_idempotency)
-    warnings.append(check_obj['warnings'])
+    # warnings.append(check_obj['warnings'])
+    for warning in check_obj['warnings']:
+        warnings.append(warning)
     if force is True or check_obj['value'] is False:
         if check_mode is True:
             return isamAppliance.create_return_object(changed=True, warnings=warnings)
@@ -160,7 +162,7 @@ def _check(isamAppliance, cluster_json, ignore_password_for_idempotency):
     :return:
     """
 
-    check_obj = {'value': True, 'warnings':""}
+    check_obj = {'value': True}
 
     ret_obj = get(isamAppliance)
     check_obj['warnings'] = ret_obj['warnings']
