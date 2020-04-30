@@ -42,12 +42,12 @@ def set(isamAppliance, primary_master='127.0.0.1', secondary_master=None, master
     # Create a simple json with just the main client attributes
     cluster_json = {
         "primary_master": primary_master,
-        "dsc_external_clients": dsc_external_clients,
+        "dsc_external_clients": bool(dsc_external_clients),
         "dsc_worker_threads": int(dsc_worker_threads),
         "dsc_maximum_session_lifetime": int(dsc_maximum_session_lifetime),
         "dsc_client_grace_period": int(dsc_client_grace_period),
-        "hvdb_embedded": hvdb_embedded,
-        "cfgdb_embedded": cfgdb_embedded,
+        "hvdb_embedded": bool(hvdb_embedded),
+        "cfgdb_embedded": bool(cfgdb_embedded),
         "first_port": int(first_port)
     }
     # Add attributes that have been supplied... otherwise skip them.
@@ -62,7 +62,7 @@ def set(isamAppliance, primary_master='127.0.0.1', secondary_master=None, master
     if dsc_port is not None:
         cluster_json["dsc_port"] = int(dsc_port)
     if dsc_use_ssl is not None:
-        cluster_json["dsc_use_ssl"] = dsc_use_ssl
+        cluster_json["dsc_use_ssl"] = bool(dsc_use_ssl)
     if dsc_ssl_keyfile is not None:
         cluster_json["dsc_ssl_keyfile"] = dsc_ssl_keyfile
     if dsc_ssl_label is not None:
@@ -86,11 +86,11 @@ def set(isamAppliance, primary_master='127.0.0.1', secondary_master=None, master
     if hvdb_db2_alt_address is not None:
         cluster_json["hvdb_db2_alt_address"] = hvdb_db2_alt_address
     if hvdb_db2_alt_port is not None:
-        cluster_json["hvdb_db2_alt_port"] = hvdb_db2_alt_port
+        cluster_json["hvdb_db2_alt_port"] = int(hvdb_db2_alt_port)
     if hvdb_db_name is not None:
         cluster_json["hvdb_db_name"] = hvdb_db_name
     if hvdb_db_secure is not None:
-        cluster_json["hvdb_db_secure"] = hvdb_db_secure
+        cluster_json["hvdb_db_secure"] = bool(hvdb_db_secure)
     if hvdb_driver_type is not None:
         cluster_json["hvdb_driver_type"] = hvdb_driver_type
     if hvdb_solid_tc is not None:
@@ -119,7 +119,7 @@ def set(isamAppliance, primary_master='127.0.0.1', secondary_master=None, master
     if cfgdb_db_name is not None:
         cluster_json["cfgdb_db_name"] = cfgdb_db_name
     if cfgdb_db_secure is not None:
-        cluster_json["cfgdb_db_secure"] = cfgdb_db_secure
+        cluster_json["cfgdb_db_secure"] = bool(cfgdb_db_secure)
     if cfgdb_driver_type is not None:
         cluster_json["cfgdb_driver_type"] = cfgdb_driver_type
     if cfgdb_solid_tc is not None:
