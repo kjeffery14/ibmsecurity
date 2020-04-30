@@ -67,7 +67,7 @@ def set(isamAppliance, primary_master='127.0.0.1', secondary_master=None, master
         cluster_json["dsc_ssl_keyfile"] = dsc_ssl_keyfile
     if dsc_ssl_label is not None:
         cluster_json["dsc_ssl_label"] = dsc_ssl_label
-    if hvdb_max_size is not None:
+    if hvdb_max_size is not None and hvdb_embedded:
         cluster_json["hvdb_max_size"] = int(hvdb_max_size)
     if hvdb_db_type is not None:
         cluster_json["hvdb_db_type"] = hvdb_db_type
