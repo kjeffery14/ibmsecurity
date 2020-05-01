@@ -100,7 +100,7 @@ def set(isamAppliance, resource_id, stanza_id, entries, check_mode=False, force=
                 # Force delete of existing values, new values will be added
                 logger.info(
                     'Deleting entry, will be re-added: {0}/{1}/{2}'.format(resource_id, stanza_id, entry[0]))
-                delete_all(isamAppliance, resource_id, stanza_id, entry[0], check_mode=False, force=True)
+                delete_all(isamAppliance, resource_id, stanza_id, entry[0], check_mode, True)
             if process_entry is True:
                 if isinstance(entry[1], list):
                     for v in entry[1]:
