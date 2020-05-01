@@ -74,7 +74,7 @@ def set(isamAppliance, primary_master='127.0.0.1', secondary_master=None, master
     if hvdb_address is not None:
         cluster_json["hvdb_address"] = hvdb_address
     if hvdb_port is not None:
-        cluster_json["hvdb_port"] = hvdb_port
+        cluster_json["hvdb_port"] = int(hvdb_port)
     if hvdb_user is not None:
         cluster_json["hvdb_user"] = hvdb_user
     if hvdb_password is not None:
@@ -103,7 +103,7 @@ def set(isamAppliance, primary_master='127.0.0.1', secondary_master=None, master
     if cfgdb_address is not None:
         cluster_json["cfgdb_address"] = cfgdb_address
     if cfgdb_port is not None:
-        cluster_json["cfgdb_port"] = cfgdb_port
+        cluster_json["cfgdb_port"] = int(cfgdb_port)
     if cfgdb_user is not None:
         cluster_json["cfgdb_user"] = cfgdb_user
     if cfgdb_password is not None:
@@ -186,7 +186,7 @@ def _check(isamAppliance, cluster_json, ignore_password_for_idempotency):
         try:
             if isinstance(value, list):
                 if ibmsecurity.utilities.tools.json_sort(
-                        ret_obj['data'][key] != ibmsecurity.utilities.tools.json_sort(value)):
+                        ret_obj['data'][key]) != ibmsecurity.utilities.tools.json_sort(value):
                     logger.debug(
                         "For key: {0}, values: {1} and {2} do not match.".format(key, value, ret_obj['data'][key]))
                     check_obj['value']=False
