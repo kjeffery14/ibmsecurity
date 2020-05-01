@@ -88,7 +88,8 @@ def set(isamAppliance, resource_id, stanza_id, entries, check_mode=False, force=
     set_entries = []
 
     if force is False:
-        for entry in _collapse_entries(entries):
+        entry_list = _collapse_entries(entries)
+        for entry in entry_list:
             process_entry = False
             exists, update_required, cur_value = _check(isamAppliance, resource_id, stanza_id, entry[0], entry[1])
             if exists is False:  # Missing entries
