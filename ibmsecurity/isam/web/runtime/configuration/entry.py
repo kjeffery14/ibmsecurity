@@ -86,12 +86,14 @@ def set(isamAppliance, resource_id, stanza_id, entries, check_mode=False, force=
     """
     set_update = False
     set_entries = []
+    warnings = []
 
     if force is False:
         entry_list = _collapse_entries(entries)
         for entry in entry_list:
             process_entry = False
             exists, update_required, cur_value = _check(isamAppliance, resource_id, stanza_id, entry[0], entry[1])
+            warnings.append('[{0}] {1} exists: {2} required: {3}'.format(stanza_id, entry[0], exists, update_required))
             if exists is False:  # Missing entries
                 set_update = True
                 process_entry = True
@@ -113,7 +115,9 @@ def set(isamAppliance, resource_id, stanza_id, entries, check_mode=False, force=
         if check_mode is True:
             return isamAppliance.create_return_object(changed=True)
         else:
-            return _add(isamAppliance, resource_id, stanza_id, set_entries)
+            ret_obj = _add(isamAppliance, resource_id, stanza_id, set_entries)
+            ret_obj['warnings'] = warnings
+            return ret_obj
 
     return isamAppliance.create_return_object()
 
