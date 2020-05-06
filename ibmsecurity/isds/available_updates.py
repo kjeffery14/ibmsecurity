@@ -101,6 +101,7 @@ def _check_file(isdsAppliance, file):
                 return True
     except Exception as e:
         logger.debug("Exception occured: {0}".format(e))
+        pass
 
     return False
 
