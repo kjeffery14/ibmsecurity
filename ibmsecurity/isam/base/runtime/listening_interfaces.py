@@ -46,8 +46,8 @@ def set(isamAppliance, interface, port, secure, check_mode=False, force=False):
                     'secure': bool(secure)
                 },
                 requires_modules=requires_modules,requires_model=requires_model)
-
-    ret_obj['warnings'].append(warnings)
+    for warning in warnings:
+        ret_obj['warnings'].append(warning)
 
     return ret_obj
 
