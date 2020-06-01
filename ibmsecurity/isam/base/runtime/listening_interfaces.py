@@ -65,7 +65,7 @@ def set_by_address(isamAppliance, address, port, secure, check_mode=False, force
             if intfc_adr['address'] == address:
                 uuid = "{0}.{1}".format(intfc['uuid'], intfc_adr['uuid'])
                 break
-    isamAppliance.logger.debug("set_by_address - uuid:" + uuid)
+
     return set(isamAppliance, uuid, port, secure, check_mode, force)
 
 
@@ -76,10 +76,10 @@ def _check(isamAppliance, interface, port):
     warnings = []
     ret_obj = get(isamAppliance)
 
-    for key, val in ret_obj.items():
-        if key == 'warnings' and val != []:
-            if "Docker" in val[0]:
-                warnings = ret_obj['warnings']
+    # for key, val in ret_obj.items():
+    #     if key == 'warnings' and val != []:
+    #         if "Docker" in val[0]:
+    #             warnings = ret_obj['warnings']
 
     exists = False
     secure = False
