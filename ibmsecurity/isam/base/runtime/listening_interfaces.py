@@ -46,8 +46,7 @@ def set(isamAppliance, interface, port, secure, check_mode=False, force=False):
                     'secure': bool(secure)
                 },
                 requires_modules=requires_modules,requires_model=requires_model)
-    for warning in warnings:
-        ret_obj['warnings'].append(warning)
+    ret_obj['warnings'].extend(warnings)
 
     return ret_obj
 
@@ -76,10 +75,9 @@ def _check(isamAppliance, interface, port):
     warnings = []
     ret_obj = get(isamAppliance)
 
-    for key, val in ret_obj.items():
-        if key == 'warnings' and val != []:
-            if "Docker" in val[0]:
-                warnings = ret_obj['warnings']
+    if ret_obj['warnings'] != []:
+        if "Docker" in ' '.join(ret_obj['warnings']):
+            warnings = ret_obj['warnings']
 
     exists = False
     secure = False
