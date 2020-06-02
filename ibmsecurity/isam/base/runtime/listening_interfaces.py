@@ -76,9 +76,8 @@ def _check(isamAppliance, interface, port):
     warnings = []
     ret_obj = get(isamAppliance)
 
-    if ret_obj['warnings'] != []:
-        if "Docker" in ' '.join(ret_obj['warnings']):
-            warnings = ret_obj['warnings']
+    if "Docker" in ' '.join(ret_obj['warnings']):
+        warnings = ret_obj['warnings']
 
     exists = False
     secure = False
