@@ -22,6 +22,7 @@ def set(isamAppliance, interface, port, secure, check_mode=False, force=False):
     ret_obj = isamAppliance.create_return_object()
     exists = False
     secure_existing = None
+    warnings = []
     if force is False:
         exists, secure_existing, id, warnings = _check(isamAppliance, interface, port)
 
