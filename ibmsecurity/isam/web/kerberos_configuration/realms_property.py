@@ -159,7 +159,6 @@ def update(isamAppliance, realm, propname, propvalue, subsection=None, check_mod
     propstring = "{0} = {1}".format(propname, propvalue)
 
     if force is not True:
-        import ibmsecurity.utilities.tools
         if ret_obj['data']['name'] != propstring:
             needs_update = True
 
