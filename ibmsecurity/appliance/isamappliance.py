@@ -15,7 +15,7 @@ except NameError:
 
 
 class ISAMAppliance(IBMAppliance):
-    def __init__(self, hostname, user, lmi_port=443):
+    def __init__(self, hostname, user, lmi_port=443, cert=None):
         self.logger = logging.getLogger(__name__)
         self.logger.debug('Creating an ISAMAppliance')
         if isinstance(lmi_port, basestring):
@@ -23,7 +23,12 @@ class ISAMAppliance(IBMAppliance):
         else:
             self.lmi_port = lmi_port
         self.session = requests.session()
-        self.session.auth = (user.username, user.password)
+        if cert is None:
+            self.logger.debug('Cert object is None, using BA Auth with userid/password.')
+            self.session.auth = (user.username, user.password)
+        else:
+            self.logger.debug('Using cert based auth, since cert object is not None.')
+            self.session.cert = cert
         IBMAppliance.__init__(self, hostname, user)
 
     def _url(self, uri):
@@ -74,26 +79,16 @@ class ISAMAppliance(IBMAppliance):
             json_data = json.loads(http_response.text)
             return_obj['data'] = json_data
         except ValueError:
-            return_obj['data'] = http_response.content.decode("utf-8")
-            return
-
-        self.logger.debug("Status Code: {0}".format(http_response.status_code))
-        if http_response.text != "":
-            self.logger.debug("Text: " + http_response.content.decode("utf-8"))
-
-        for key in http_response.headers:
-            if key == 'g-type':
-                if http_response.headers[key] == 'application/octet-stream; charset=UTF-8':
-                    json_data = {}
-                    return_obj.data = http_response.content.decode("utf-8")
-                    return
-
-        if http_response.text == "":
-            json_data = {}
-        else:
-            json_data = json.loads(http_response.text)
-
-        return_obj['data'] = json_data
+            try:
+                json_data = json.loads(http_response.content.decode("utf-8"))
+                return_obj['data'] = json_data
+            except UnicodeDecodeError:
+                return_obj['data'] = http_response.content
+            except ValueError:
+                if isinstance(http_response.content, bytes):
+                    return_obj['data'] = http_response.content.decode("utf-8")
+                else:
+                    return_obj['data'] = http_response.content
 
     def _process_connection_error(self, ignore_error, return_obj):
         if not ignore_error:
