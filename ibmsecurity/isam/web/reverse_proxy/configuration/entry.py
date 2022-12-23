@@ -117,9 +117,9 @@ def set(isamAppliance, reverseproxy_id, stanza_id, entries, check_mode=False, fo
     fCurrentEntries = {k: v for k, v in currentEntries.items() if k in newEntries.keys()}
     # compare using json_sort
     newEntriesJSON = json.dumps(newEntries, skipkeys=True, sort_keys=True, cls=jsonSortedListEncoder)
-    logger.debug(f"\nSorted Desired  Stanza {stanza_id}:\n\n {newEntriesJSON}\n")
+    # logger.debug(f"\nSorted Desired  Stanza {stanza_id}:\n\n {newEntriesJSON}\n")
     currentEntriesJSON = json.dumps(fCurrentEntries, skipkeys=True, sort_keys=True, cls=jsonSortedListEncoder)
-    logger.debug(f"\nSorted Existing Stanza {stanza_id}:\n\n {currentEntriesJSON}\n")
+    # logger.debug(f"\nSorted Existing Stanza {stanza_id}:\n\n {currentEntriesJSON}\n")
 
     if force or (newEntriesJSON != currentEntriesJSON):
         for entry in entries:
