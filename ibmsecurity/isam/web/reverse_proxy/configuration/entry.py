@@ -123,7 +123,7 @@ def set(isamAppliance, reverseproxy_id, stanza_id, entries, check_mode=False, fo
 
     if force or (newEntriesJSON != currentEntriesJSON):
         for entry in entries:
-            logger.info(f"Deleting entry, will be re-added: {reverseproxy_id}/{stanza_id}/{entry[0]}")
+            logger.info("Deleting entry, will be re-added: {0}/{1}/{2}".format(reverseproxy_id,stanza_id,entry[0]))
             delete_all(isamAppliance, reverseproxy_id, stanza_id, entry[0], check_mode, True)
         if check_mode is True:
             return isamAppliance.create_return_object(changed=True)
