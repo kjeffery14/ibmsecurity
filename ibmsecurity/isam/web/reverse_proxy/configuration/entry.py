@@ -23,7 +23,7 @@ def get_all(isamAppliance, reverseproxy_id, stanza_id, check_mode=False, force=F
                                            "{0}/{1}/configuration/stanza/{2}".format(uri,
                                                                                      reverseproxy_id,
                                                                                      stanza_id))
-        logger.debug(f"Get All {stanza_id}:\n {ret_obj}")
+        # logger.debug(f"Get All {stanza_id}:\n {ret_obj}")
     except:
         # Return empty array - exception thrown if stanza has no entries or does not exist
         ret_obj = isamAppliance.create_return_object()
