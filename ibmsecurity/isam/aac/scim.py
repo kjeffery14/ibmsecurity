@@ -49,7 +49,7 @@ def update_user_profile(isamAppliance, ldap_connection, user_suffix, search_suff
         ret_obj)
 
 
-def update_isam_user(isamAppliance, isam_domain, update_native_users, ldap_connection, check_mode=False, force=False):
+def update_isam_user(isamAppliance, isam_domain, update_native_users, ldap_connection, connection_type=None, check_mode=False, force=False):
     """
     Update SCIM ISAM user settings
     """
@@ -61,6 +61,8 @@ def update_isam_user(isamAppliance, isam_domain, update_native_users, ldap_conne
     ret_obj['isam_domain'] = isam_domain
     ret_obj['update_native_users'] = update_native_users
     ret_obj['ldap_connection'] = ldap_connection
+    if connection_type is not None:
+        ret_obj['connection_type'] = connection_type
     return isamAppliance.invoke_put(
         "Update SCIM ISAM user settings",
         "/mga/scim/configuration/urn:ietf:params:scim:schemas:extension:isam:1.0:User",
@@ -100,7 +102,7 @@ def _check(isamAppliance, scim_configuration):
     logger.debug("Comparing server scim configuration with desired configuration.")
     # Converting python ret_obj['data'] and scim_configuration from type dict to valid JSON (RFC 8259)
     # e.g. converts python boolean 'True' -> to JSON literal lowercase value 'true'
-    cur_json_string = json.dumps(ret_obj['data']) 
+    cur_json_string = json.dumps(ret_obj['data'])
     cur_sorted_json = tools.json_sort(cur_json_string)
     logger.debug("Server JSON : {0}".format(cur_sorted_json))
     given_json_string = json.dumps(scim_configuration)
