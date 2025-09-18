@@ -10,30 +10,32 @@ def get_all(isamAppliance, kdb_id, check_mode=False, force=False):
     """
     Retrieving personal certificate names and details in a certificate database
     """
-    return isamAppliance.invoke_get("Retrieving personal certificate names and details in a certificate database",
-                                    "/isam/ssl_certificates/{0}/personal_cert".format(kdb_id))
+    return isamAppliance.invoke_get(
+        "Retrieving personal certificate names and details in a certificate database",
+        f"/isam/ssl_certificates/{kdb_id}/personal_cert"
+    )
 
 
 def get(isamAppliance, kdb_id, cert_id, check_mode=False, force=False):
     """
     Retrieving a personal certificate from a certificate database
     """
-    return isamAppliance.invoke_get("Retrieving a personal certificate from a certificate database",
-                                    "/isam/ssl_certificates/{0}/personal_cert/{1}".format(kdb_id, cert_id))
+    return isamAppliance.invoke_get(
+        "Retrieving a personal certificate from a certificate database",
+        f"/isam/ssl_certificates/{kdb_id}/personal_cert/{cert_id}"
+    )
 
 
-def generate(isamAppliance, kdb_id, label, dn, expire='365', default='no', size='1024', signature_algorithm='',
+def generate(isamAppliance, kdb_id, label, dn, expire='365', default='no', size='2048', signature_algorithm='',
              check_mode=False, force=False):
     """
     Generating a self-signed personal certificate in a certificate database
     """
-
     warnings = []
 
     if signature_algorithm is not None:
-        if ibmsecurity.utilities.tools.version_compare(isamAppliance.facts["version"], "9.0.2.0") < 0:
-            warnings.append("Appliance at version: {0}, signature_algorithm is not supported. Needs 9.0.2.0 or higher. "
-                            "Ignoring signature_algorithm for this call".format(isamAppliance.facts["version"]))
+        if ibmsecurity.utilities.tools.version_compare(isamAppliance.facts['version'], "9.0.2.0") < 0:
+            warnings.append(f"Appliance at version: {isamAppliance.facts['version']}, signature_algorithm is not supported. Needs 9.0.2.0 or higher. Ignoring signature_algorithm for this call")
             json_obj = {
                 "operation": 'generate',
                 "label": label,
@@ -59,7 +61,7 @@ def generate(isamAppliance, kdb_id, label, dn, expire='365', default='no', size=
         else:
             return isamAppliance.invoke_post(
                 "Generating a self-signed personal certificate in a certificate database",
-                "/isam/ssl_certificates/{0}/personal_cert".format(kdb_id),
+                f"/isam/ssl_certificates/{kdb_id}/personal_cert",
                 json_obj,
                 warnings=warnings
             )
@@ -67,22 +69,55 @@ def generate(isamAppliance, kdb_id, label, dn, expire='365', default='no', size=
     return isamAppliance.create_return_object(changed=False, warnings=warnings)
 
 
+def rename(isamAppliance, kdb_id, cert_id, new_id,
+           check_mode=False, force=False):
+    """
+    Rename a personal certificate.  New in 10.0.7
+    """
+    warnings = []
+
+    if ibmsecurity.utilities.tools.version_compare(isamAppliance.facts['version'], "10.0.7.0") < 0:
+        warnings.append(
+            f"Appliance is at version: {isamAppliance.facts['version']}. Renaming a certificate requires at least 10.0.7.0"
+        )
+    else:
+        if force or (_check(isamAppliance, kdb_id, cert_id) and not _check(isamAppliance, kdb_id, new_id)):
+            if check_mode:
+                return isamAppliance.create_return_object(changed=True)
+            else:
+                return isamAppliance.invoke_put(
+                    "Renaming a personal certificate as default in a certificate database",
+                    f"/isam/ssl_certificates/{kdb_id}/personal_cert/{cert_id}",
+                    {
+                        'new_id': new_id
+                    })
+
+
 def set(isamAppliance, kdb_id, cert_id, default='no', check_mode=False, force=False):
     """
     Setting a personal certificate as default in a certificate database
-    """
-    if force is True or _check_default(isamAppliance, kdb_id, cert_id, default) is True:
-        if check_mode is True:
-            return isamAppliance.create_return_object(changed=True)
-        else:
-            return isamAppliance.invoke_put(
-                "Setting a personal certificate as default in a certificate database",
-                "/isam/ssl_certificates/{0}/personal_cert/{1}".format(kdb_id, cert_id),
-                {
-                    'default': default
-                })
 
-    return isamAppliance.create_return_object()
+    Obsolete since 10.0.3
+    """
+    warnings = []
+
+    if ibmsecurity.utilities.tools.version_compare(isamAppliance.facts['version'], "10.0.3.0") > 0:
+        warnings.append(
+            f"Appliance is at version: {isamAppliance.facts['version']}. Setting certificates as default is no longer supported."
+        )
+    else:
+        if force or _check_default(isamAppliance, kdb_id, cert_id, default):
+            if check_mode:
+                return isamAppliance.create_return_object(changed=True)
+            else:
+                return isamAppliance.invoke_put(
+                    "Setting a personal certificate as default in a certificate database",
+                    f"/isam/ssl_certificates/{kdb_id}/personal_cert/{cert_id}",
+                    {
+                        'default': default
+                    })
+
+    return isamAppliance.create_return_object(warnings=warnings)
 
 
 def receive(isamAppliance, kdb_id, label, cert, default='no', check_mode=False, force=False):
@@ -95,7 +130,7 @@ def receive(isamAppliance, kdb_id, label, cert, default='no', check_mode=False, 
         else:
             return isamAppliance.invoke_post_files(
                 "Receiving a personal certificate into a certificate database",
-                "/isam/ssl_certificates/{0}/personal_cert".format(kdb_id),
+                f"/isam/ssl_certificates/{kdb_id}/personal_cert",
                 [
                     {
                         'file_formfield': 'cert',
@@ -115,13 +150,13 @@ def delete(isamAppliance, kdb_id, cert_id, check_mode=False, force=False):
     """
     Deleting a personal certificate from a certificate database
     """
-    if force is True or _check(isamAppliance, kdb_id, cert_id) is True:
-        if check_mode is True:
+    if force or _check(isamAppliance, kdb_id, cert_id):
+        if check_mode:
             return isamAppliance.create_return_object(changed=True)
         else:
             return isamAppliance.invoke_delete(
                 "Deleting a personal certificate from a certificate database",
-                "/isam/ssl_certificates/{0}/personal_cert/{1}".format(kdb_id, cert_id))
+                f"/isam/ssl_certificates/{kdb_id}/personal_cert/{cert_id}")
 
     return isamAppliance.create_return_object()
 
@@ -134,34 +169,49 @@ def export_cert(isamAppliance, kdb_id, cert_id, filename, check_mode=False, forc
         if check_mode is False:  # No point downloading a file if in check_mode
             return isamAppliance.invoke_get_file(
                 "Exporting a personal certificate from a certificate database",
-                "/isam/ssl_certificates/{0}/personal_cert/{1}?export".format(kdb_id, cert_id),
+                f"/isam/ssl_certificates/{kdb_id}/personal_cert/{cert_id}?export",
                 filename)
 
     return isamAppliance.create_return_object()
 
 
-def import_cert(isamAppliance, kdb_id, label, cert, password=None, check_mode=False, force=False):
+def import_cert(isamAppliance, kdb_id, cert, label=None, password=None, check_mode=False, force=False):
     """
     Importing a personal certificate into a certificate database
+    Remark: you can add a label, but it's only used for a half-hearted check if the certificate already exists for versions < 11
     """
-    if force is True or _check(isamAppliance, kdb_id, label) is False:
-        if check_mode is True:
+    warnings = []
+    if force or not _check(isamAppliance, kdb_id, label):
+        if check_mode:
             return isamAppliance.create_return_object(changed=True)
         else:
+            iviaVersion = isamAppliance.facts['version']
+            post_data = {
+                'file_formfield': 'cert',
+                'filename': cert,
+                'mimetype': 'application/octet-stream'
+            }
+            json_data = {
+                'operation': 'import'
+            }
+            if password is not None:
+                json_data['password'] = password
+            if label is not None:
+                if ibmsecurity.utilities.tools.version_compare(iviaVersion, "10.0.9.0") < 0:
+                    warnings.append(f"Appliance at version: {iviaVersion}, label: {label} is not supported. Needs 10.0.9 or higher. Ignoring.")
+                else:
+                    logger.debug(f"Adding label: {label}")
+                    json_data['label'] = label
+            logger.debug(f"Posting json data: {json_data}")
             return isamAppliance.invoke_post_files(
                 "Importing a personal certificate into a certificate database",
-                "/isam/ssl_certificates/{0}/personal_cert".format(kdb_id),
+                f"/isam/ssl_certificates/{kdb_id}/personal_cert",
                 [
-                    {
-                        'file_formfield': 'cert',
-                        'filename': cert,
-                        'mimetype': 'application/octet-stream'
-                    }
+                    post_data
                 ],
-                {
-                    'password': password,
-                    'operation': 'import'
-                })
+                json_data,
+                warnings=warnings
+            )
 
     return isamAppliance.create_return_object()
 
@@ -176,7 +226,7 @@ def extract_cert(isamAppliance, kdb_id, cert_id, password, filename, check_mode=
         else:
             ret_obj = isamAppliance.invoke_post(
                 "Extracting a personal certificate from a certificate database",
-                "/isam/ssl_certificates/{0}/personal_cert/{1}".format(kdb_id, cert_id),
+                f"/isam/ssl_certificates/{kdb_id}/personal_cert/{cert_id}",
                 {
                     'operation': 'extract',
                     'type': 'pkcs12',
@@ -193,11 +243,14 @@ def _check(isamAppliance, kdb_id, cert_id):
     """
     Check if personal certificate already exists in certificate database
     """
-    ret_obj = get_all(isamAppliance, kdb_id)
-
-    for certdb in ret_obj['data']:
-        if certdb['id'] == cert_id:
-            return True
+    if cert_id is None:
+        logger.debug("No label passed, so return false")
+        return False
+    else:
+        ret_obj = get_all(isamAppliance, kdb_id)
+        for certdb in ret_obj['data']:
+            if certdb['id'] == cert_id:
+                return True
 
     return False
 

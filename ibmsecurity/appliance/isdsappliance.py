@@ -4,26 +4,68 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import logging
 from .ibmappliance import IBMAppliance
 from .ibmappliance import IBMError
+from .ibmappliance import IBMFatal
 from ibmsecurity.utilities import tools
 from io import open
+from os import environ
 
 try:
     basestring
 except NameError:
-
     basestring = (str, bytes)
 
 
 class ISDSAppliance(IBMAppliance):
-    def __init__(self, hostname, user, lmi_port=443):
+    def __init__(self, hostname, user, lmi_port=443, cert=None, verify=None):
         self.logger = logging.getLogger(__name__)
         self.logger.debug('Creating an ISDSAppliance')
         if isinstance(lmi_port, basestring):
             self.lmi_port = int(lmi_port)
         else:
             self.lmi_port = lmi_port
+        self.hostname = hostname
+        self.session = requests.session()
+
+        # If we did not get a value for verify, try the environment variable
+        if verify is None:
+            verify = str(environ.get("IBMSECLIB_VERIFY_CONNECTION", False)).lower() in ["true", "yes"]
+
+        self.cert = cert
+
+        self.disable_urllib_warnings = False
+        if self.cert is None:
+            self.logger.debug('Cert object is None, using BA Auth with userid/password.')
+            self.session.auth = (user.username, user.password)
+        else:
+            self.logger.debug('Using cert based auth, since cert object is not None.')
+            self.session.cert = self.cert
+
+        self._set_ssl_verification(requests_verify_param=verify)
 
         IBMAppliance.__init__(self, hostname, user)
+
+    def _set_ssl_verification(self, requests_verify_param):
+        self.verify = requests_verify_param
+        self.session.verify = self.verify
+        if self.verify is None or self.verify is False:
+            self.disable_urllib_warnings = True
+            self.logger.warning("""
+Certificate verification has been disabled. Python is NOT verifying the SSL
+certificate of the host appliance and InsecureRequestWarning messages are
+being suppressed for the following host:
+  https://{0}:{1}
+
+To use certificate verification:
+  1. When the certificate is trusted by your Python environment:
+        Instantiate all instances of ISDSAppliance with verify=True or set
+        the environment variable IBMSECLIB_VERIFY_CONNECTION=True.
+  2. When the certificate is not already trusted in your Python environment:
+        Instantiate all instances of ISAMAppliance with the verify parameter
+        set to the fully qualified path to a CA bundle.
+
+See the following URL for more details:
+  https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
+""".format(self.hostname, self.lmi_port))
 
     def _url(self, uri):
         # Build up the URL
@@ -37,19 +79,32 @@ class ISDSAppliance(IBMAppliance):
             self.logger.info('*** ' + description + ' ***')
 
     def _suppress_ssl_warning(self):
+        # If we have trust setup correctly, we do not want to suppress these warnings.
+        if not self.disable_urllib_warnings:
+            return
+
         # Disable https warning because of non-standard certs on appliance
         try:
-            self.logger.debug("Suppressing SSL Warnings.")
+            self.logger.warning("Suppressing SSL Warnings.")
             requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
         except AttributeError:
             self.logger.warning("load requests.packages.urllib3.disable_warnings() failed")
 
     def _process_response(self, return_obj, http_response, ignore_error):
 
+        # return_obj['rsp'] = http_response # Do not add this - breaks the ISAM Collection's connection
         return_obj['rc'] = http_response.status_code
 
         # Examine the response.
-        if (http_response.status_code != 200 and http_response.status_code != 204 and http_response.status_code != 201):
+        if (http_response.status_code == 403):
+            self.logger.error("  Request failed: ")
+            self.logger.error("     status code: {0}".format(http_response.status_code))
+            if http_response.text != "":
+                self.logger.error("     text: " + http_response.text)
+            # Unconditionally raise exception to abort execution
+            raise IBMFatal("HTTP Return code: {0}".format(http_response.status_code), http_response.text)
+        elif (
+                http_response.status_code != 200 and http_response.status_code != 204 and http_response.status_code != 201):
             self.logger.error("  Request failed: ")
             self.logger.error("     status code: {0}".format(http_response.status_code))
             if http_response.text != "":
@@ -60,9 +115,10 @@ class ISDSAppliance(IBMAppliance):
         else:
             return_obj['rc'] = 0
 
-            # Handle if there was json on input but response was not in json format
+        # Handle if there was json on input but response was not in json format
         try:
             json_data = json.loads(http_response.text)
+            return_obj['data'] = json_data
         except ValueError:
             return_obj['data'] = http_response.content
             return
@@ -167,7 +223,7 @@ class ISDSAppliance(IBMAppliance):
 
         try:
             r = requests.post(url=self._url(uri=uri), data=data, auth=(self.user.username, self.user.password),
-                              files=files, verify=False, headers=headers)
+                              files=files, verify=self.verify, headers=headers)
             return_obj['changed'] = True  # POST of file would be a change
             self._process_response(return_obj=return_obj, http_response=r, ignore_error=ignore_error)
 
@@ -211,7 +267,7 @@ class ISDSAppliance(IBMAppliance):
 
         try:
             r = requests.put(url=self._url(uri=uri), data=data, auth=(self.user.username, self.user.password),
-                             files=files, verify=False, headers=headers)
+                             files=files, verify=self.verify, headers=headers)
             return_obj['changed'] = True  # POST of file would be a change
             self._process_response(return_obj=return_obj, http_response=r, ignore_error=ignore_error)
 
@@ -251,7 +307,7 @@ class ISDSAppliance(IBMAppliance):
         self._suppress_ssl_warning()
 
         try:
-            r = requests.get(url=self._url(uri=uri), auth=(self.user.username, self.user.password), verify=False,
+            r = requests.get(url=self._url(uri=uri), auth=(self.user.username, self.user.password), verify=self.verify,
                              stream=True, headers=headers)
 
             if (r.status_code != 200 and r.status_code != 204 and r.status_code != 201):
@@ -319,14 +375,14 @@ class ISDSAppliance(IBMAppliance):
 
                 if data != {}:
                     r = func(url=self._url(uri), data=json_data, auth=(self.user.username, self.user.password),
-                             verify=False, headers=headers)
+                             verify=self.verify, headers=headers)
                 else:
                     r = func(url=self._url(uri), auth=(self.user.username, self.user.password),
-                             verify=False, headers=headers)
+                             verify=self.verify, headers=headers)
             else:
                 r = func(url=self._url(uri), data=json_data,
                          auth=(self.user.username, self.user.password),
-                         verify=False, headers=headers)
+                         verify=self.verify, headers=headers)
 
             if func != requests.get:
                 return_obj['changed'] = True  # Anything but GET should result in change

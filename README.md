@@ -9,7 +9,7 @@ Code for ISVG appliance is brand new (tested with 10.0.1.0 and higher only).
 
 ## Requirements
 
-Python v3.7 and above is required for this package.
+Python v3.9 and above is required for this package.
 
 The following Python Packages are required:
 1. requests - for making REST API calls
@@ -20,16 +20,101 @@ The following Python Packages are optional:
 1. cryptography - to perform action on certificates (used for idempotency in management_ssl_certificate)
 2. python-dateutil - date utilities (used for idempotency in management_ssl_certificate)
 
-Appliances need to have an ip address defined for their LMI. This may mean that appliances have had their initial setup 
+Appliances need to have an ip address defined for their LMI. This may mean that appliances have had their initial setup
 done with license acceptance.
 
+## TLS verification enabled (v2024.4.5)
+
+These changes are backwards compatible. We default to not verifying but always display a notice:
+
+````markdown
+Certificate verification has been disabled. Python is NOT verifying the SSL
+certificate of the host appliance and InsecureRequestWarning messages are
+
+being suppressed for the following host:
+
+https://{0}:{1}
+
+To use certificate verification:
+
+1. When the certificate is trusted by your Python environment:
+   Instantiate all instances of ISAMAppliance with verify=True or set
+   the environment variable IBMSECLIB_VERIFY_CONNECTION=True.
+2. When the certificate is not already trusted in your Python environment:
+   Instantiate all instances of ISAMAppliance with the verify parameter
+   set to the fully qualified path to a CA bundle.
+
+See the following URL for more details:
+https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
+````
+To remediate this cert validation warning, consider the instructions below:
+
+Correct usage:
+
+If you have the cert on disk somewhere,
+instantiate the ISAMAppliance with:
+
+    ISAMAppliance(…, verify=<path to cert>)
+
+You can retrieve this from appliance using a command like:
+
+    openssl s_client -connect ${HOSTNAME}:${PORT} </dev/null 2>/dev/null | openssl x509 -outform pem >  isamAppliance.pem
+
+If the cert is already trusted in your Python environment,
+instantiate the ISAMAppliance with:
+
+    ISAMAppliance(…, verify=True)
+
+or set the environment variable: `IBMSECLIB_VERIFY_CONNECTION=true`
+
+If you receive errors about the hostname not matching the certificate:
+
+This might look like:
+````
+<stack trace>
+
+…
+
+    raise CertificateError("hostname %r doesn't match %r" % (hostname, dnsnames[0]))
+
+urllib3.util.ssl_match_hostname.CertificateError: hostname '192.168.42.111' doesn't match 'appliance.ibm.com'
+
+````
+
+Ensure the hostname used when instantiating your ISAMAppliance matches the Subject Alternative Name of the cert.
+
+Check with:
+
+    openssl x509 -in <cert-pem-file> -text
+
+Example:
+
+    $ openssl x509 -in /path/to/appliance.pem -text
+
+Certificate:
+
+    Data:
+        Version: 3 (0x2)
+        …
+            X509v3 Subject Alternative Name:
+                DNS:appliance.ibm.com
+…
+
+The following will generate errors:
+
+    ISAMAppliance(host=”192.168.42.111”, lmi_port=443, verify=/path/to/appliance.pem)
+
+as host does not match the Subject Alternative Name.
+Instead, use:
+
+    ISAMAppliance(host=”appliance.ibm.com”, lmi_port=443, verify=/path/to/appliance.pem)
 
 
 ## Versioning
 
 This package uses a date for versioning. For example: "2017.03.18.0"
 
-It is the date when the package is released with a sequence number at the end to handle when there are 
+It is the date when the package is released with a sequence number at the end to handle when there are
 multiple releases in one day (expected to be uncommon).
 
 ## Features
@@ -37,7 +122,7 @@ multiple releases in one day (expected to be uncommon).
 This python package provides the following features:
 1. Easy to use - the details of making a REST call are handled within an appliance class
 2. Intuitive layout of code package and naming maps to the GUI interface of appliance
-3. Idempotency - functions that make updates will query the appliance to compare given data to see if a 
+3. Idempotency - functions that make updates will query the appliance to compare given data to see if a
 changes is required before making the actual change.
 4. Commit and Deploy steps are provided separately to allow for flexibility in invoking them
 5. Standard logging is included - with the ability to set logging levels.
@@ -76,7 +161,7 @@ This avoids having to store credentials in a script and allows easier repeat of 
 Example:
 
 ~~~~
-python testisam_cmd.py --hostname 192.168.1.1 --method "ibmsecurity.isam.web.iag.export.features.get" --commit 
+python testisam_cmd.py --hostname 192.168.1.1 --method "ibmsecurity.isam.web.iag.export.features.get" --commit
 ~~~~
 
 ## Organization of code
@@ -88,17 +173,17 @@ Currently that is ISAM and ISDS appliances.
 
 ### User Classes
 
-An abstract `User` is extended for each type of user needed. For ISAM that is an user for appliance access 
+An abstract `User` is extended for each type of user needed. For ISAM that is an user for appliance access
  and another for authenticating to Web Runtime (Policy Server).
 
 ### Layout of ISAM packages
 
 There are four primary ISAM packages - `base`, `web`, `aac` and `fed`. `web` contains all the components needed
 for setting up the web functionality including embedded ldap, runtime and features that are activated as part of the
-`wga` module. `aac` contains features activated as part of the `mga` module and `fed` that of `federation`. `base` 
+`wga` module. `aac` contains features activated as part of the `mga` module and `fed` that of `federation`. `base`
 contains everything else - including `aac` and `fed` `runtime` and `Audit Configuration` (these are common to `aac` and `fed`
  and thus in `base`).
- 
+
 ### Package and File Names
 
 The package and file names were created with the following intention:
@@ -128,13 +213,13 @@ Check and see if the object already exists - if so then check if update is neede
 ### `delete()`
 Check and see if the object already exists - if so then delete, otherwise do nothing.
 ### `import_<>()`
-"import" is a reserved word, so there is a suffix to indicate what to import (e.g. file or key). This will check if the object exists 
+"import" is a reserved word, so there is a suffix to indicate what to import (e.g. file or key). This will check if the object exists
 before importing it.
 ### `export_<>()`
 Export will check if exists before exporting it - when exporting to a file, and the file already exists it will not re-export.
-Export 
+Export
 ### `compare()`
-Compare takes JSON output from the get_all() functions and compares it. It will strip data from JSON that 
+Compare takes JSON output from the get_all() functions and compares it. It will strip data from JSON that
 are unique to each appliance (e.g. UUID values). The deleted_keys value returned lists the JSON keys that were deleted before comparison.
 
 ## Function Parameters
