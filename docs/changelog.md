@@ -2,6 +2,22 @@
 
 ## Latest
 
+- feature: proxy support (http_proxy and https_proxy only)
+- fix: base/ssl_certificates/signer_certificates.py - don't error if get signer certificate returns nothing
+- feature: update docker db_configuration with new parameters v10.0.8.0 and v11
+- removed: soliddb as option for docker db_configuration
+
+### Build & deploy
+- wip: ordering of pytests
+
+## 2025.9.26.0
+
+- fix: policy attachments application can take 2 formats, /uri or urn:x:y
+- fix: Update scim test
+- fix: fed/federations.py - handle exception when retrieving existing mapping rules (#448)
+- build: exclude test folder from build
+- feature: signer cert support for string (in addition to file)
+
 ## 2025.7.14.0
 
 - fix: certificate_databases : python syntax (indentation)
